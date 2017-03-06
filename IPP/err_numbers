@@ -1,0 +1,21 @@
+1. špatný formát parametrů skriptu nebo byla použita zakáza
+ná kombinace parametrů;
+
+2. neexistující zadaný vstupní soubor nebo chyba otevření z
+adaného vstupního souboru pro čtení;
+
+3. chyba při pokusu o otevření zadaného výstupního souboru p
+ro zápis (např. kvůli ne-
+dostatečnému oprávnění pro vytvoření nového nebo přepis ex
+istujícího souboru);
+
+4. chybný formát vstupního souboru (pokud nebyla bezchybov
+ost vstupu zaručena v konkrétní
+úloze nebo nebyla specifikována jiná návratová hodnota pro k
+onkrétní chybu v konkrétní úloze);
+
+10. - 99. návratové kódy chyb specifických pro jednotlivé úlo
+hy;
+
+100. - 127. ostatní typy chyb, které nejsou postihnuty žádno
+u z předchozích variant.

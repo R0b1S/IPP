@@ -28,24 +28,76 @@ function writeHelp(){
 		 ";
 }
 
-function argumentsTest($argv){
+function argumentsParse($argv,$argc){
+ 	$longopts = array(
+ 		"help",
+ 		"input:",
+ 		"output:",
+ 		"pretty-xml::",
+ 		"no-inline",
+ 		"max-par:",
+ 		"no-duplicates",
+ 		"remove-whitespace",
+ 	);
 
-	
-}
+ 	$input_path = getcwd();
+ 	$dir = "./";
+ 	$output_file = STDOUT;
+ 	$pretty_xml = false;
+ 	$k = -1;
+ 	$no_inline = false;
+ 	$max_par = false;
+ 	$no_duplicates = false;
+ 	$remove_whitespace = false;
+
+ 	if($argc > 1){
+ 		$arguments = getopt($longopts);
+		if(count($arguments) != ($argc-1))		{
+			fwrite(STRERR, "Invalid format of arguments.");
+			exit(1);
+		}//if count test
+
+		foreach ($arguments as $argument => $argument_value) {
+			switch($argument){
+				case "help":
+					if(argc != 2){
+						fwrite(STRERR, "Invalid amount of arguments. HELP can t be combined with other arguments");
+						exit(1);
+					}
+				break;
+
+				case "input":
+					$input_path = $argument_value;
+				break;
+
+				case "output":
+					if(!fopen($argument_value, "w")){
+						fwrite(STRERR, "Error: Can t open output file.");
+						exit(3);
+					}
+				break;
+
+				case "pretty-xml":
+
+				break;
+
+
+			}//switch
+		}//foreach
+
+
+ 	}//if argc>1
+
+}//function 
 
 //-----------------------------------------------------------------------------------------------
 
-
-//argumentsTest($argv);
-
-$file = getopt("input::output::");
-var_dump($file);
-
+argumentsParse($argv,$argc);
 
 
 //Errors messages
 function errMsg(){
-	echo "too many argumants \n";
+	echo "too many arguments \n";
 }
 
 ?>
