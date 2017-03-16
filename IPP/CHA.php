@@ -29,7 +29,7 @@ function writeHelp(){
 }//function end
 
 function fileExploration($input_path){
-	 						
+
 	if(($file_content = file_get_contents($input_path)) == false){ 						//Testing if we were able to get content or if file is not empt
 		fwrite(STDERR, "Error: Cant get file content or file is empty.\n");
 		return 0;
@@ -49,9 +49,12 @@ function fileExploration($input_path){
 	return 0;
 }//function end
 
-function writeContentToXML($XML_document, $dir, $input_path, $pretty_xml, $k, $no_inline, $max_par, $no_duplicates, $remove_whitespace, $f_functions){
-	
-	$XML_document->setIndent(true); 
+function writeContentToXML($file, $XML_document, $dir, $input_path, $input_path_argument, $pretty_xml, $k, $no_inline, $max_par, $no_duplicates, $remove_whitespace, $f_functions){
+
+	$dupl = array();
+	$dupl_warn = false;	
+
+	$XML_document->setIndent(true);
 	
 	foreach ($f_functions[0] as $number => $value) {
 		
@@ -60,43 +63,56 @@ function writeContentToXML($XML_document, $dir, $input_path, $pretty_xml, $k, $n
 		preg_match("/([a-zA-Z_][[:alpha:]\s]*?[[:graph:]]+?)\s*?([[:alnum:]_]+?)\s*?\(/", $value, $f_type);	//$f_type[1] = contains type of func.
 										  //$f_type[2] = contains name of func.
 
+		//pretty-xml---------------------------------------
 		if($pretty_xml == true && $k >= 0){
-				$spaces_number = str_repeat(" ",$k);
-				$XML_document->setIndentString($spaces_number);
+			$spaces_number = str_repeat(" ",$k);
+			$XML_document->setIndentString($spaces_number);
 		}
+		//-------------------------------------------------
 
-		//osetrit TODO
+		//dir----------------------------------------------
+		if($input_path_argument && is_dir($input_path))
+			if(!preg_match("/\/$/", $input_path))
+				$dir = $input_path.'/';
+
+		if(!$input_path_argument)
+			$dir = "./";
+
 		$XML_document->startElement('functions');
 		$XML_document->writeAttribute('dir',$dir);
-		
+		//-------------------------------------------------
 
 		//remove-whitespace---------------------------------
 		if($remove_whitespace){
-				$value = preg_replace("/\s\s+/"," ",$value);
-				$f_type[1] = preg_replace("/\s\s+/"," ",$f_type[1]);	
-				$f_type[2] = preg_replace("/\s\s+/"," ",$f_type[2]);	
+			$value = preg_replace("/\s\s+/"," ",$value);
+			$f_type[1] = preg_replace("/\s\s+/"," ",$f_type[1]);	
+			$f_type[2] = preg_replace("/\s\s+/"," ",$f_type[2]);	
 		}
 		//--------------------------------------------------
 		
 		//inline--------------------------------------------
 		if($no_inline)
-				if(preg_match("/inline/",$f_type[1]) != 0)
-					continue;
+			if(preg_match("/inline/",$f_type[1]) != 0)
+				continue;
 		//--------------------------------------------------
-		
-		
-		//duplicates-----------------------------------------
-		//TODO
-		//---------------------------------------------------
 
+		//duplicates-----------------------------------------
+		if($no_duplicates){
+			$dupl[$number] = $f_type[2];
+			for ($i=0; $i < $number-1; $i++)
+				if ($f_type[2] === $dupl[$i])
+				 	$dupl_warn = true;
+		}
+		if($dupl_warn)
+			continue;
+		//---------------------------------------------------
 		
 		preg_match_all("/[[:alnum:]\s*_\[\]]+[),]/", $value, $params); // find parameters
 
 		//max-par--------------------------------------------
-		if($max_par != -1){
+		if($max_par != -1)
 			if(count($params[0]) > $max_par)
 				continue;
-		}
 		//---------------------------------------------------
 		
 		//varargs--------------------------------------------
@@ -104,11 +120,11 @@ function writeContentToXML($XML_document, $dir, $input_path, $pretty_xml, $k, $n
 		if(preg_match("/[(,]\s*?\.\.\.\s*?[,)]/", $value) != false)
 			$varargs = 'yes';
 		//---------------------------------------------------
-		echo "$varargs\n";	
-
-		$file=1; //TODO
-
-		var_dump($f_type[1]);
+		
+		//file-----------------------------------------------
+		if($input_path_argument && is_file($input_path))
+			$file = $input_path;
+		//---------------------------------------------------
 		
 		$XML_document->startElement('function');
 			$XML_document->writeAttribute('file',$file);
@@ -229,18 +245,11 @@ function writeContentToXML($XML_document, $dir, $input_path, $pretty_xml, $k, $n
 // end of getopt() part
 // ----------------------------------------------------------------------------------
 
-//fileExploration($input_path);
-//var_dump($arguments);
-
-echo "zatial ok\n";
-
-
 if(is_file($input_path)){
 	if(!file_exists($input_path)){
 		fwrite(STDERR, "Error: File does not exists.\n");
 		exit(2);
 	}
-	echo "ehm?\n";
 	//Creating and opening xml------------------
 	$XML_document = new XMLWriter();	
 	$XML_document->openMemory();
@@ -249,11 +258,9 @@ if(is_file($input_path)){
 	$dir = "";
 
 	if(($f_functions = fileExploration($input_path))!=0){
-	  writeContentToXML($XML_document, $dir, $input_path, $pretty_xml, $k, $no_inline, $max_par, $no_duplicates, $remove_whitespace, $f_functions);		
+	  writeContentToXML($file, $XML_document, $dir, $input_path, $input_path_argument,$pretty_xml, $k, $no_inline, $max_par, $no_duplicates, $remove_whitespace, $f_functions);		
 	}
 
-	//var_dump($f_functions);
-	//echo "so ok?\n";
 	$XML_document->endElement();
 	$XML_document->endDocument();
 	//Closing xml.---------------------------------
@@ -264,13 +271,62 @@ if(is_file($input_path)){
 	$XML_document->writeRaw($XML_content);
 	//---------------------------------------------
 }
-if(is_dir($input_path)){
-		//TODO
+else
+	if(is_dir($input_path)){
+		//Creating and opening xml------------------
+		$XML_document = new XMLWriter();	
+		$XML_document->openMemory();
+		$XML_document->startDocument('1.0','UTF-8');
 
-}
+		//$directoryIter = new RecursiveDirectoryIterator($input_path);
+		//var_dump($directoryIter);
+		//foreach (new RecursiveDirectoryIterator($directoryIter) as $f_files) {
+		//	var_dump($f_files);
+		//}
+
+		$dir = "./";
+
+		if($input_path_argument)
+			$dir = $input_path;
+
+		$direct = new RecursiveDirectoryIterator($input_path);	
+	  $extension = "h";
+		
+		foreach(new RecursiveIteratorIterator($direct) as $found_file) {
+	    		if(strcmp($extension, array_pop(explode('.', $found_file))) == 0){		
+					if(($f_functions =fileExploration($found_file))!=0){			
+						if($input_path!=getcwd())
+		 				  	$file=substr($found_file, strlen($dir)-strlen($found_file));	 			 
+						 else					  
+							$file=substr($found_file, strlen($input_path)-strlen($found_file)+1);	
+				 	
+					writeContentToXML($file, $XML_document, $dir, $input_path, $input_path_argument,$pretty_xml, $k, $no_inline, $max_par, $no_duplicates, $remove_whitespace, $f_functions);
+				 } 			
+			 }
+		 }	
 
 
-echo "still ok\n";
+
+
+		
+		$XML_document->endElement();
+		$XML_document->endDocument();
+		//Closing xml.---------------------------------
+
+		//Writing xml content to output file.----------
+		$XML_content = $XML_document->outputMemory();
+		$XML_document->openUri($output_file);
+		$XML_document->writeRaw($XML_content);
+		//---------------------------------------------
+
+	}
+	else{
+		fwrite(STDERR, "Error: File does not exists. \n");
+		exit(2);
+	}
+
+
+//echo "still ok\n";
 
 
 //echo "$output_file\n";
